@@ -1,0 +1,78 @@
+﻿=================================================================
+  MANUAL DE DESCIFRADO â€” CONFIDENCIAL
+  Solo para uso de Gibran Torres y Antigravity AI
+=================================================================
+
+Archivo cifrado : Run.ps1
+Algoritmo       : XOR con clave rotativa + codificacion Base64
+Fecha           : 2026-07-17 22:08
+
+-----------------------------------------------------------------
+CLAVE SECRETA
+-----------------------------------------------------------------
+
+Clave en bytes  : 71,84,95,120,75,57,33,90,114,50,35,77,105,103,114,97,116,101
+Clave en ASCII  : GT_xK9!Zr2#Migrate
+Longitud clave  : 18 bytes
+
+-----------------------------------------------------------------
+COMO DESCIFRAR MANUALMENTE (PowerShell)
+-----------------------------------------------------------------
+
+1. Copia el contenido del blob Base64 de Run.ps1 (el texto largo
+   entre parentesis en la linea que empieza con $a1=...)
+
+2. Ejecuta este codigo en PowerShell:
+
+   $blob   = "<PEGA_EL_BLOB_BASE64_AQUI>"
+   $key    = [byte[]](71,84,95,120,75,57,33,90,114,50,35,77,105,103,114,97,116,101)
+   $cipher = [Convert]::FromBase64String($blob)
+   $plain  = New-Object byte[] $cipher.Length
+   for ($i = 0; $i -lt $cipher.Length; $i++) {
+       $plain[$i] = $cipher[$i] -bxor $key[$i % $key.Length]
+   }
+   [System.Text.Encoding]::UTF8.GetString($plain) | Out-File Decoded.ps1
+   notepad Decoded.ps1
+
+-----------------------------------------------------------------
+ALGORITMO PASO A PASO
+-----------------------------------------------------------------
+
+CIFRADO (lo que hizo el obfuscador):
+  1. Leer Export-BrowserData.ps1 como bytes UTF-8
+  2. Para cada byte[i]: cifrado[i] = original[i] XOR clave[i mod 18]
+  3. Convertir resultado a Base64
+  4. Insertar el blob en Run.ps1
+
+DESCIFRADO (lo que hace Run.ps1 al ejecutarse):
+  1. Leer el blob Base64 embebido
+  2. Decodificar Base64 a bytes
+  3. Para cada byte[i]: original[i] = cifrado[i] XOR clave[i mod 18]
+  4. Convertir bytes a string UTF-8
+  5. Invoke-Expression (ejecutar en memoria, nunca toca el disco)
+
+-----------------------------------------------------------------
+NOTAS DE SEGURIDAD
+-----------------------------------------------------------------
+
+- El codigo fuente NUNCA se escribe en disco durante la ejecucion.
+  Vive solo en memoria RAM mientras corre.
+- Sin esta clave, el archivo Run.ps1 es ilegible.
+- La clave XOR esta embebida en Run.ps1 como array de bytes
+  sin contexto visible. Un atacante necesitaria saber el
+  algoritmo Y los bytes exactos para reconstruir el original.
+- Para mayor seguridad, elimina Export-BrowserData.ps1 y
+  Obfuscator.ps1 del equipo. Solo conserva Run.ps1.
+
+-----------------------------------------------------------------
+ARCHIVOS A CONSERVAR
+-----------------------------------------------------------------
+
+  Run.ps1                 <- el que ejecutas (cifrado)
+  MANUAL_DESCIFRADO.txt   <- ESTE archivo (guardalo en lugar seguro)
+
+ARCHIVOS A ELIMINAR (ya no necesarios):
+  Export-BrowserData.ps1  <- codigo fuente original
+  Obfuscator.ps1          <- generador de cifrado
+
+=================================================================
